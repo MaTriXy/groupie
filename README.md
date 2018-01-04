@@ -13,17 +13,13 @@ Groupie plays best with Kotlin and Kotlin Android extensions. Never write a View
 You can also use Groupie with Java and your existing ViewHolders. 
 
 ```gradle
-compile 'com.xwray:groupie:2.0.0-alpha2'
+compile 'com.xwray:groupie:2.0.0'
 ```
 
 Groupie also supports Android's [data binding](https://developer.android.com/topic/libraries/data-binding/index.html) to generate view holders. [Setup here.](#data-binding)
 
 ```gradle
-compile 'com.xwray:groupie-databinding:2.0.0-alpha2' 
-```
-The last stable release ONLY supported data binding.  It was:
-```gradle
-compile 'com.xwray:groupie:1.1.1'
+compile 'com.xwray:groupie-databinding:2.0.0' 
 ```
 
 Which one to choose?  It's up to you and what your project already uses. You can even use Kotlin and data binding together.[<sup>*</sup>](#kotlin-and-data-binding) Or all your existing hand-written Java ViewHolders, and one new Kotlin item to try it out. Go crazy!  
@@ -60,30 +56,14 @@ section.removeHeader(); // results in a remove event for 1 item in the adapter, 
 ```
     
 There are a few simple implementations of Groups within the library:
-- `Section`, a list of body content with an optional header group and footer group.  
+- `Section`, a list of body content with an optional header group and footer group.  It supports diffing and animating moves, updates and other changes
 - `ExpandableGroup`, a single parent group with a list of body content that can be toggled hidden or shown.
-- `UpdatingGroup`, a list of items which can diff its previous and new contents and animate moves, updates and other changes 
     
-Groups are flexible and composable.  They can be combined and nested to arbitrary depth.  For example, you could make an UpdatingSection by adding a single UpdatingGroup to the content of a Section. 
-
-```java
-public class UpdatingSection extends Section {
-    private final UpdatingGroup updatingGroup;
-
-    public UpdatingSection() {
-        setHeader(new HeaderItem("Updating section!");
-        updatingGroup = new UpdatingGroup();
-    }
-
-    public void update(List<Item> list) {
-        updatingGroup.update(list);
-    }
-}
-```
+Groupie tries not to assume what features your groups require.  Instead, groups are flexible and composable.  They can be combined and nested to arbitrary depth.  
     
-Life is messy, so groups are designed so that making new ones and defining their behavior is easy. You should make many small, simple, custom groups as the need strikes you.
+Life (and mobile design) is complicated, so groups are designed so that making new ones and defining their behavior is easy. You should make many small, simple, custom groups as the need strikes you.
 
-You can implement the `Group` interface directly if you want.  However, in most cases, you should extend the base implementation, `NestedGroup`.  NestedGroup provides support for arbitrary nesting of groups, registering/unregistering listeners, and fine-grained change notifications to support animations and updating the adapter.
+You can implement the `Group` interface directly if you want.  However, in most cases, you should extend `Section` or the base implementation, `NestedGroup`.  Section supports common RV paradigms like diffing, headers, footers, and placeholders.  NestedGroup provides support for arbitrary nesting of groups, registering/unregistering listeners, and fine-grained change notifications to support animations and updating the adapter.
     
 ## Items
 
@@ -94,19 +74,19 @@ Groupie abstracts away the complexity of multiple item view types.  Each Item de
 The `Item` class gives you simple callbacks to bind your model object to the generated fields.  Because of Kotlin Android extensions, there's no need to write a view holder.
 
 ```kotlin
-import kotlinx.android.synthetic.main.song.view.*
+import kotlinx.android.synthetic.main.song.*
 
 class SongItem constructor(private val song: Song) : Item<ViewHolder>() {
 
     override fun getLayout() = R.layout.song
 
     override fun bind(viewHolder: ViewHolder, position: Int) {
-        viewHolder.itemView.title.text = song.title
-        viewHolder.itemView.title.artist = song.artist
+        viewHolder.title.text = song.title
+        viewHolder.title.artist = song.artist
     }
 }
 ```
-If you're converting existing ViewHolders, you can leave them as they are by making an `Item<MyViewHolder>`. 
+If you're converting existing ViewHolders, you can leave them as they are by making an `Item<MyViewHolder>` where `MyViewHolder` extends Groupie's `ViewHolder`. 
 
 ### Item with data binding:
 
@@ -136,7 +116,7 @@ If you're converting existing ViewHolders, you can reference any named views (e.
     }
 ```
 
-You can also mix and match `BindableItem` and other `Items` in the adapter, so you can leave legacy viewholders as they are by making an `Item<MyExistingViewHolder>`.
+You can also mix and match `BindableItem` and other `Items` in the adapter, so you can leave legacy viewholders as they are by making an `Item<MyExistingViewHolder>`.  Just switch `MyExistingViewHolder` to extend Groupie's `ViewHolder` rather than `RecyclerView.ViewHolder`.
 
 ### Note: 
 
@@ -153,7 +133,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 buildscript {
-    ext.kotlin_version = '1.1.1'
+    ext.kotlin_version = '1.2.10'
     repositories {
         jcenter()
     }
@@ -163,15 +143,21 @@ buildscript {
     }
 }
 
+// IMPORTANT!  Enables view caching in viewholders.
+// See: https://github.com/Kotlin/KEEP/blob/master/proposals/android-extensions-entity-caching.md
+androidExtensions {
+    experimental = true
+}
+
 dependencies {
-    compile 'com.xwray:groupie:2.0.0-alpha2'
+    compile 'com.xwray:groupie:2.0.0'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
 }
 ```
 
 Remember to include 
 ```kotlin
-import kotlinx.android.synthetic.main.my_item_layout.view.*
+import kotlinx.android.synthetic.main.my_item_layout.*
 ```
 in the corresponding Item class for generated view references.
 
@@ -187,7 +173,7 @@ android {
 }
 
 dependencies {
-    compile 'com.xwray:groupie-databinding:2.0.0-alpha2'
+    compile 'com.xwray:groupie-databinding:2.0.0'
 }
 ```
 
@@ -233,13 +219,6 @@ Contributions you say?  Yes please!
 - Screenshots are also a huge help if the problem is visual.
 ### Send a pull request!
 - If you're fixing a bug, please add a failing test or code that can reproduce the issue.
-
-# Notes
-
-Pre-release versions of groupie had a different package name.  The last working build was:
-```gradle
-compile 'com.genius:groupie:0.7.0'
-```
 
 
 If you try it out, I'd love to know what you think. Please hit up Lisa at [first][last]@gmail.com or on Twitter at [@lisawrayz](https://twitter.com/lisawrayz).
