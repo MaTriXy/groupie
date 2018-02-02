@@ -8,19 +8,25 @@ Groupie lets you treat your content as logical groups and handles change notific
 
 # Try it out:
 
-Groupie plays best with Kotlin and Kotlin Android extensions. Never write a ViewHolder again—Kotlin generates view references and Groupie uses a generic holder. [Setup here.](#kotlin) 
+```gradle
+compile 'com.xwray:groupie:2.0.3'
+```
 
-You can also use Groupie with Java and your existing ViewHolders. 
+Groupie includes a module for Kotlin and Kotlin Android extensions. Never write a ViewHolder again—Kotlin generates view references and Groupie uses a generic holder. [Setup here.](#kotlin) 
 
 ```gradle
-compile 'com.xwray:groupie:2.0.0'
+compile 'com.xwray:groupie:2.0.3'
+compile 'com.xwray:groupie-kotlin-android-extensions:2.0.3'
 ```
 
 Groupie also supports Android's [data binding](https://developer.android.com/topic/libraries/data-binding/index.html) to generate view holders. [Setup here.](#data-binding)
 
 ```gradle
-compile 'com.xwray:groupie-databinding:2.0.0' 
+compile 'com.xwray:groupie:2.0.3'
+compile 'com.xwray:groupie-databinding:2.0.3' 
 ```
+
+You can also use Groupie with Java and your existing ViewHolders. 
 
 Which one to choose?  It's up to you and what your project already uses. You can even use Kotlin and data binding together.[<sup>*</sup>](#kotlin-and-data-binding) Or all your existing hand-written Java ViewHolders, and one new Kotlin item to try it out. Go crazy!  
     
@@ -74,9 +80,11 @@ Groupie abstracts away the complexity of multiple item view types.  Each Item de
 The `Item` class gives you simple callbacks to bind your model object to the generated fields.  Because of Kotlin Android extensions, there's no need to write a view holder.
 
 ```kotlin
+import com.xwray.groupie.kotlinandroidextensions.Item
+import com.xwray.groupie.kotlinandroidextensions.ViewHolder
 import kotlinx.android.synthetic.main.song.*
 
-class SongItem constructor(private val song: Song) : Item<ViewHolder>() {
+class SongItem constructor(private val song: Song) : Item() {
 
     override fun getLayout() = R.layout.song
 
@@ -86,7 +94,6 @@ class SongItem constructor(private val song: Song) : Item<ViewHolder>() {
     }
 }
 ```
-If you're converting existing ViewHolders, you can leave them as they are by making an `Item<MyViewHolder>` where `MyViewHolder` extends Groupie's `ViewHolder`. 
 
 ### Item with data binding:
 
@@ -116,7 +123,19 @@ If you're converting existing ViewHolders, you can reference any named views (e.
     }
 ```
 
-You can also mix and match `BindableItem` and other `Items` in the adapter, so you can leave legacy viewholders as they are by making an `Item<MyExistingViewHolder>`.  Just switch `MyExistingViewHolder` to extend Groupie's `ViewHolder` rather than `RecyclerView.ViewHolder`.
+You can also mix and match `BindableItem` and other `Items` in the adapter, so you can leave legacy viewholders as they are by making an `Item<MyExistingViewHolder>`.  
+
+### Legacy item (your own ViewHolder)
+You can leave legacy viewholders as they are by converting `MyExistingViewHolder` to extend Groupie's `ViewHolder` rather than `RecyclerView.ViewHolder`. Make sure to change the imports to `com.xwray.groupie.Item` and `com.xwray.groupie.ViewHolder`. 
+
+Finally, in your `Item<MyExistingViewHolder>`, override 
+
+```java
+    @Override
+    public MyExistingViewHolder createViewHolder(@NonNull View itemView) {
+        return new MyExistingViewHolder(itemView);
+    }
+```
 
 ### Note: 
 
@@ -150,8 +169,9 @@ androidExtensions {
 }
 
 dependencies {
-    compile 'com.xwray:groupie:2.0.0'
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation 'com.xwray:groupie:2.0.3'
+    implementation 'com.xwray:groupie-kotlin-android-extensions:2.0.3'
 }
 ```
 
@@ -173,7 +193,7 @@ android {
 }
 
 dependencies {
-    compile 'com.xwray:groupie-databinding:2.0.0'
+    compile 'com.xwray:groupie-databinding:2.0.3'
 }
 ```
 
