@@ -1,8 +1,8 @@
 package com.xwray.groupie.example.databinding.item;
 
 import android.graphics.drawable.Animatable;
-import android.support.annotation.ColorInt;
-import android.support.annotation.NonNull;
+import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
 import android.view.View;
 
 import com.xwray.groupie.databinding.BindableItem;
@@ -16,14 +16,12 @@ public class HeartCardItem extends BindableItem<ItemHeartCardBinding> {
 
     public static final String FAVORITE = "FAVORITE";
 
-    @ColorInt private int colorRes;
-    private OnFavoriteListener onFavoriteListener;
+    private final OnFavoriteListener onFavoriteListener;
     private boolean checked = false;
     private boolean inProgress = false;
 
-    public HeartCardItem(@ColorInt int colorRes, long id, OnFavoriteListener onFavoriteListener) {
+    public HeartCardItem(long id, OnFavoriteListener onFavoriteListener) {
         super(id);
-        this.colorRes = colorRes;
         this.onFavoriteListener = onFavoriteListener;
         getExtras().put(MainActivity.INSET_TYPE_KEY, MainActivity.INSET);
     }
@@ -70,7 +68,7 @@ public class HeartCardItem extends BindableItem<ItemHeartCardBinding> {
     }
 
     @Override
-    public void bind(@NonNull ItemHeartCardBinding binding, int position, List<Object> payloads) {
+    public void bind(@NonNull ItemHeartCardBinding binding, int position, @NonNull List<Object> payloads) {
         if (payloads.contains(FAVORITE)) {
             bindHeart(binding);
         } else {

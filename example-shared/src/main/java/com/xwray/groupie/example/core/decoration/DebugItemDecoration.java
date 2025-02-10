@@ -4,8 +4,10 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.RecyclerView;
+
+import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 
 import com.xwray.groupie.example.core.Prefs;
@@ -27,7 +29,7 @@ public class DebugItemDecoration extends RecyclerView.ItemDecoration {
         bottomColor = ContextCompat.getColor(context, R.color.indigo_200);
     }
 
-    @Override public void onDrawOver(Canvas c, RecyclerView parent, RecyclerView.State state) {
+    @Override public void onDrawOver(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
         if (!(prefs.getShowBounds() || prefs.getShowOffsets())) return;
 
         int childCount = parent.getChildCount();

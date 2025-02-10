@@ -1,13 +1,13 @@
 package com.xwray.groupie;
 
-import android.support.annotation.NonNull;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import androidx.annotation.NonNull;
+
 /**
- * An ExpandableContentItem is one "base" content item with a list of children (any of which
+ * An ExpandableGroup is one "base" content item with a list of children (any of which
  * may themselves be a group.)
  **/
 
@@ -17,18 +17,29 @@ public class ExpandableGroup extends NestedGroup {
     private final Group parent;
     private final List<Group> children = new ArrayList<>();
 
-    public ExpandableGroup(Group expandableItem) {
+    public <T extends Group & ExpandableItem> ExpandableGroup(T expandableItem) {
         this.parent = expandableItem;
-        ((ExpandableItem) expandableItem).setExpandableGroup(this);
+        expandableItem.setExpandableGroup(this);
     }
 
-    public ExpandableGroup(Group expandableItem, boolean isExpanded) {
+    public <T extends Group & ExpandableItem> ExpandableGroup(T expandableItem, boolean isExpanded) {
         this.parent = expandableItem;
-        ((ExpandableItem) expandableItem).setExpandableGroup(this);
+        expandableItem.setExpandableGroup(this);
         this.isExpanded = isExpanded;
     }
 
-    @Override public void add(@NonNull Group group) {
+    @Override
+    public void add(int position, @NonNull Group group) {
+        super.add(position, group);
+        children.add(position, group);
+        if (isExpanded) {
+            final int notifyPosition = 1 + GroupUtils.getItemCount(children.subList(0, position));
+            notifyItemRangeInserted(notifyPosition, group.getItemCount());
+        }
+    }
+
+    @Override
+    public void add(@NonNull Group group) {
         super.add(group);
         if (isExpanded) {
             int itemCount = getItemCount();
@@ -41,12 +52,14 @@ public class ExpandableGroup extends NestedGroup {
 
     @Override
     public void addAll(@NonNull Collection<? extends Group> groups) {
-        if (groups.isEmpty()) return;
+        if (groups.isEmpty()) {
+            return;
+        }
         super.addAll(groups);
         if (isExpanded) {
             int itemCount = getItemCount();
             this.children.addAll(groups);
-            notifyItemRangeInserted(itemCount, getItemCount(groups));
+            notifyItemRangeInserted(itemCount, GroupUtils.getItemCount(groups));
         } else {
             this.children.addAll(groups);
         }
@@ -58,12 +71,54 @@ public class ExpandableGroup extends NestedGroup {
             return;
         }
         super.addAll(position, groups);
+        this.children.addAll(position, groups);
+
         if (isExpanded) {
-            int itemCount = getItemCount();
-            this.children.addAll(position, groups);
-            notifyItemRangeInserted(itemCount, getItemCount(groups));
+            final int notifyPosition = 1 + GroupUtils.getItemCount(children.subList(0, position));
+            notifyItemRangeInserted(notifyPosition, GroupUtils.getItemCount(groups));
+        }
+    }
+
+
+    @Override
+    public void remove(@NonNull Group group) {
+        if (!this.children.contains(group)) return;
+        super.remove(group);
+        if (isExpanded) {
+            int position = getItemCountBeforeGroup(group);
+            children.remove(group);
+            notifyItemRangeRemoved(position, group.getItemCount());
         } else {
-            this.children.addAll(position, groups);
+            children.remove(group);
+        }
+    }
+
+    @Override
+    public void replaceAll(@NonNull Collection<? extends Group> groups) {
+        if (isExpanded) {
+            super.replaceAll(groups);
+            children.clear();
+            children.addAll(groups);
+            notifyDataSetInvalidated();
+        } else {
+            children.clear();
+            children.addAll(groups);
+        }
+    }
+
+    @Override
+    public void removeAll(@NonNull Collection<? extends Group> groups) {
+        if (groups.isEmpty() || !this.children.containsAll(groups)) return;
+        super.removeAll(groups);
+        if (isExpanded) {
+            this.children.removeAll(groups);
+            for (Group group : groups) {
+                int position = getItemCountBeforeGroup(group);
+                children.remove(group);
+                notifyItemRangeRemoved(position, group.getItemCount());
+            }
+        } else {
+            this.children.removeAll(groups);
         }
     }
 
@@ -80,16 +135,24 @@ public class ExpandableGroup extends NestedGroup {
         }
     }
 
-    @Override public int getPosition(@NonNull Group group) {
+    @Override
+    public int getPosition(@NonNull Group group) {
         if (group == parent) {
             return 0;
-        } else {
-            return 1 + children.indexOf(group);
         }
+        int index = children.indexOf(group);
+        if (index >= 0) {
+            return index + 1;
+        }
+        return -1;
     }
 
     public int getGroupCount() {
         return 1 + (isExpanded ? children.size() : 0);
+    }
+
+    public int getChildCount() {
+        return children.size();
     }
 
     public void onToggleExpanded() {
@@ -102,7 +165,13 @@ public class ExpandableGroup extends NestedGroup {
             notifyItemRangeInserted(oldSize, newSize - oldSize);
         }
     }
-    
+
+    public void setExpanded(boolean isExpanded) {
+        if (this.isExpanded != isExpanded) {
+            onToggleExpanded();
+        }
+    }
+
     private boolean dispatchChildChanges(Group group) {
         return isExpanded || group == parent;
     }
@@ -174,6 +243,13 @@ public class ExpandableGroup extends NestedGroup {
     public void onItemMoved(@NonNull Group group, int fromPosition, int toPosition) {
         if (dispatchChildChanges(group)) {
             super.onItemMoved(group, fromPosition, toPosition);
+        }
+    }
+
+    @Override
+    public void onDataSetInvalidated() {
+        if (isExpanded) {
+            super.onDataSetInvalidated();
         }
     }
 }

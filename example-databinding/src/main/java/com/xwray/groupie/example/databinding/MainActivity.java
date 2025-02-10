@@ -2,21 +2,24 @@ package com.xwray.groupie.example.databinding;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.databinding.DataBindingUtil;
+
+import androidx.annotation.NonNull;
+import androidx.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.helper.ItemTouchHelper;
+import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Toast;
 
 import com.xwray.groupie.ExpandableGroup;
 import com.xwray.groupie.Group;
-import com.xwray.groupie.GroupAdapter;
+import com.xwray.groupie.GroupieAdapter;
+import com.xwray.groupie.GroupieViewHolder;
 import com.xwray.groupie.Item;
 import com.xwray.groupie.OnItemClickListener;
 import com.xwray.groupie.OnItemLongClickListener;
@@ -32,6 +35,7 @@ import com.xwray.groupie.example.databinding.databinding.ActivityMainBinding;
 import com.xwray.groupie.example.databinding.item.CardItem;
 import com.xwray.groupie.example.databinding.item.CarouselCardItem;
 import com.xwray.groupie.example.databinding.item.ColumnItem;
+import com.xwray.groupie.example.databinding.item.DraggableItem;
 import com.xwray.groupie.example.databinding.item.FullBleedCardItem;
 import com.xwray.groupie.example.databinding.item.HeaderItem;
 import com.xwray.groupie.example.databinding.item.HeartCardItem;
@@ -50,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String INSET = "inset";
 
     private ActivityMainBinding binding;
-    private GroupAdapter groupAdapter;
+    private GroupieAdapter groupAdapter;
     private GridLayoutManager layoutManager;
     private Prefs prefs;
 
@@ -61,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Section infiniteLoadingSection;
     private Section swipeSection;
+    private Section dragSection;
 
     // Normally there's no need to hold onto a reference to this list, but for demonstration
     // purposes, we'll shuffle this list and post an update periodically
@@ -80,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         rainbow200 = getResources().getIntArray(R.array.rainbow_200);
         rainbow500 = getResources().getIntArray(R.array.rainbow_500);
 
-        groupAdapter = new GroupAdapter();
+        groupAdapter = new GroupieAdapter();
         groupAdapter.setOnItemClickListener(onItemClickListener);
         groupAdapter.setOnItemLongClickListener(onItemLongClickListener);
         groupAdapter.setSpanCount(12);
@@ -96,9 +101,8 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(groupAdapter);
         recyclerView.addOnScrollListener(new InfiniteScrollListener(layoutManager) {
             @Override public void onLoadMore(int currentPage) {
-                int color = rainbow200[currentPage % rainbow200.length];
                 for (int i = 0; i < 5; i++) {
-                    infiniteLoadingSection.add(new CardItem(color));
+                    infiniteLoadingSection.add(new CardItem());
                 }
             }
         });
@@ -119,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Full bleed item
         Section fullBleedItemSection = new Section(new HeaderItem(R.string.full_bleed_item));
-        fullBleedItemSection.add(new FullBleedCardItem(R.color.purple_200));
+        fullBleedItemSection.add(new FullBleedCardItem());
         groupAdapter.add(fullBleedItemSection);
 
         // Update in place group
@@ -147,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
         updatingGroup = new Section();
         updatableItems = new ArrayList<>();
         for (int i = 1; i <= 12; i++) {
-            updatableItems.add(new UpdatableItem(rainbow200[i], i));
+            updatableItems.add(new UpdatableItem(i));
         }
         updatingGroup.update(updatableItems);
         updatingSection.add(updatingGroup);
@@ -157,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
         ExpandableHeaderItem expandableHeaderItem = new ExpandableHeaderItem(R.string.expanding_group, R.string.expanding_group_subtitle);
         ExpandableGroup expandableGroup = new ExpandableGroup(expandableHeaderItem);
         for (int i = 0; i < 2; i++) {
-            expandableGroup.add(new CardItem(rainbow200[1]));
+            expandableGroup.add(new CardItem());
         }
         groupAdapter.add(expandableGroup);
 
@@ -170,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
         // Group showing even spacing with multiple columns
         Section multipleColumnsSection = new Section(new HeaderItem(R.string.multiple_columns));
         for (int i = 0; i < 12; i++) {
-            multipleColumnsSection.add(new SmallCardItem(rainbow200[5]));
+            multipleColumnsSection.add(new SmallCardItem());
         }
         groupAdapter.add(multipleColumnsSection);
 
@@ -180,6 +184,13 @@ public class MainActivity extends AppCompatActivity {
             swipeSection.add(new SwipeToDeleteItem(rainbow200[6]));
         }
         groupAdapter.add(swipeSection);
+
+        dragSection = new Section(new HeaderItem(R.string.drag_to_reorder));
+        dragSection.clear();
+        for (int i = 0; i < 5; i++) {
+            dragSection.add(new DraggableItem(rainbow500[i]));
+        }
+        groupAdapter.add(dragSection);
 
         // Horizontal carousel
         Section carouselSection = new Section(new HeaderItem(R.string.carousel, R.string.carousel_subtitle));
@@ -191,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
         // Update with payload
         Section updateWithPayloadSection = new Section(new HeaderItem(R.string.update_with_payload, R.string.update_with_payload_subtitle));
         for (int i = 0; i < rainbow500.length; i++) {
-            updateWithPayloadSection.add(new HeartCardItem(rainbow200[i], i, onFavoriteListener));
+            updateWithPayloadSection.add(new HeartCardItem(i, onFavoriteListener));
 
         }
         groupAdapter.add(updateWithPayloadSection);
@@ -205,18 +216,18 @@ public class MainActivity extends AppCompatActivity {
         List<ColumnItem> columnItems = new ArrayList<>();
         for (int i = 1; i <= 5; i++) {
             // First five items are red -- they'll end up in a vertical column
-            columnItems.add(new ColumnItem(rainbow200[0], i));
+            columnItems.add(new ColumnItem(i));
         }
         for (int i = 6; i <= 10; i++) {
             // Next five items are pink
-            columnItems.add(new ColumnItem(rainbow200[1], i));
+            columnItems.add(new ColumnItem(i));
         }
         return new ColumnGroup(columnItems);
     }
 
     private Group makeCarouselGroup() {
         CarouselItemDecoration carouselDecoration = new CarouselItemDecoration(gray, betweenPadding);
-        GroupAdapter carouselAdapter = new GroupAdapter();
+        GroupieAdapter carouselAdapter = new GroupieAdapter();
         for (int i = 0; i < 10; i++) {
             carouselAdapter.add(new CarouselCardItem(rainbow200[i]));
         }
@@ -254,13 +265,31 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private TouchCallback touchCallback = new SwipeTouchCallback(gray) {
-        @Override public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
-            return false;
+    private TouchCallback touchCallback = new SwipeTouchCallback() {
+        @Override public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
+            Item item = groupAdapter.getItem(viewHolder.getBindingAdapterPosition());
+            Item targetItem = groupAdapter.getItem(target.getBindingAdapterPosition());
+
+            List<Group> dragItems = dragSection.getGroups();
+            int targetIndex = dragItems.indexOf(targetItem);
+            dragItems.remove(item);
+
+            // if item gets moved out of the boundary
+            if (targetIndex == -1) {
+                if (target.getBindingAdapterPosition() < viewHolder.getBindingAdapterPosition()) {
+                    targetIndex = 0;
+                } else {
+                    targetIndex = dragItems.size() - 1;
+                }
+            }
+
+            dragItems.add(targetIndex, item);
+            dragSection.update(dragItems);
+            return true;
         }
 
         @Override public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-            Item item = groupAdapter.getItem(viewHolder.getAdapterPosition());
+            Item item = groupAdapter.getItem(viewHolder.getBindingAdapterPosition());
             // Change notification to the adapter happens automatically when the section is
             // changed.
             swipeSection.remove(item);

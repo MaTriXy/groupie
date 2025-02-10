@@ -1,15 +1,15 @@
 package com.xwray.groupie.example.databinding.item;
 
-import android.support.annotation.NonNull;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.View;
 
-import com.xwray.groupie.GroupAdapter;
+import com.xwray.groupie.GroupieAdapter;
 import com.xwray.groupie.Item;
 import com.xwray.groupie.OnItemClickListener;
 import com.xwray.groupie.databinding.BindableItem;
-import com.xwray.groupie.databinding.ViewHolder;
+import com.xwray.groupie.databinding.GroupieViewHolder;
 import com.xwray.groupie.example.databinding.R;
 import com.xwray.groupie.example.databinding.databinding.ItemCarouselBinding;
 
@@ -18,18 +18,19 @@ import com.xwray.groupie.example.databinding.databinding.ItemCarouselBinding;
  */
 public class CarouselItem extends BindableItem<ItemCarouselBinding> implements OnItemClickListener {
 
-    private GroupAdapter adapter;
-    private RecyclerView.ItemDecoration carouselDecoration;
+    private final GroupieAdapter adapter;
+    private final RecyclerView.ItemDecoration carouselDecoration;
 
-    public CarouselItem(RecyclerView.ItemDecoration itemDecoration, GroupAdapter adapter) {
+    public CarouselItem(RecyclerView.ItemDecoration itemDecoration, GroupieAdapter adapter) {
         this.carouselDecoration = itemDecoration;
         this.adapter = adapter;
         adapter.setOnItemClickListener(this);
     }
 
+    @NonNull
     @Override
-    public ViewHolder<ItemCarouselBinding> createViewHolder(@NonNull View itemView) {
-        ViewHolder<ItemCarouselBinding> viewHolder = super.createViewHolder(itemView);
+    public GroupieViewHolder<ItemCarouselBinding> createViewHolder(@NonNull View itemView) {
+        GroupieViewHolder<ItemCarouselBinding> viewHolder = super.createViewHolder(itemView);
         RecyclerView recyclerView = viewHolder.binding.recyclerView;
         recyclerView.addItemDecoration(carouselDecoration);
         recyclerView.setLayoutManager(new LinearLayoutManager(recyclerView.getContext(), LinearLayoutManager.HORIZONTAL, false));
@@ -45,7 +46,7 @@ public class CarouselItem extends BindableItem<ItemCarouselBinding> implements O
     }
 
     @Override
-    public void onItemClick(Item item, View view) {
+    public void onItemClick(@NonNull Item item, @NonNull View view) {
         adapter.remove(item);
     }
 }

@@ -1,9 +1,10 @@
 package com.xwray.groupie;
 
-import android.support.annotation.MainThread;
-import android.support.annotation.NonNull;
-import android.support.v7.util.DiffUtil;
-import android.support.v7.util.ListUpdateCallback;
+import androidx.annotation.MainThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListUpdateCallback;
 
 import java.util.Collection;
 
@@ -16,7 +17,7 @@ class AsyncDiffUtil {
          * Called on the main thread before DiffUtil dispatches the result
          */
         @MainThread
-        void onDispatchResult(@NonNull Collection<? extends Group> newGroups);
+        void onDispatchAsyncResult(@NonNull Collection<? extends Group> newGroups);
     }
 
     private final Callback asyncDiffUtilCallback;
@@ -41,10 +42,13 @@ class AsyncDiffUtil {
         return maxScheduledGeneration;
     }
 
-    void calculateDiff(@NonNull Collection<? extends Group> newGroups, @NonNull DiffUtil.Callback diffUtilCallback) {
+    void calculateDiff(@NonNull Collection<? extends Group> newGroups,
+                       @NonNull DiffUtil.Callback diffUtilCallback,
+                       @Nullable OnAsyncUpdateListener onAsyncUpdateListener,
+                       boolean detectMoves) {
         groups = newGroups;
         // incrementing generation means any currently-running diffs are discarded when they finish
         final int runGeneration = ++maxScheduledGeneration;
-        new DiffTask(this, diffUtilCallback, runGeneration).execute();
+        new DiffTask(this, diffUtilCallback, runGeneration, detectMoves, onAsyncUpdateListener).execute();
     }
 }

@@ -9,21 +9,24 @@ Groupie lets you treat your content as logical groups and handles change notific
 # Try it out:
 
 ```gradle
-compile 'com.xwray:groupie:2.1.0'
+implementation "com.github.lisawray.groupie:groupie:$groupie_version"
 ```
 
-Groupie includes a module for Kotlin and Kotlin Android extensions. Never write a ViewHolder again—Kotlin generates view references and Groupie uses a generic holder. [Setup here.](#kotlin) 
+Groupie also has a support module for Android's [view binding](https://developer.android.com/topic/libraries/view-binding). This module also supports Android [data binding](https://developer.android.com/topic/libraries/data-binding/index.html), so if your project uses both data binding and view binding, you don't have to add the dependency on the data binding support module. [Setup here.](#view-binding)
 
 ```gradle
-compile 'com.xwray:groupie:2.1.0'
-compile 'com.xwray:groupie-kotlin-android-extensions:2.1.0'
+implementation "com.github.lisawray.groupie:groupie:$groupie_version"
+implementation "com.github.lisawray.groupie:groupie-viewbinding:$groupie_version" 
 ```
 
-Groupie also supports Android's [data binding](https://developer.android.com/topic/libraries/data-binding/index.html) to generate view holders. [Setup here.](#data-binding)
+### Note:
+If using `groupie-viewbinding` in a databinding project is only available when using Android Gradle Plugin 3.6.0 or higher.
+
+If using an older Gradle Plugin version with databinding the you can use the standalone `groupie-databinding` library to generate view holders. [Setup here.](#data-binding)
 
 ```gradle
-compile 'com.xwray:groupie:2.1.0'
-compile 'com.xwray:groupie-databinding:2.1.0' 
+implementation "com.github.lisawray.groupie:groupie:$groupie_version"
+implementation "com.github.lisawray.groupie:groupie-databinding:$groupie_version" 
 ```
 
 You can also use Groupie with Java and your existing ViewHolders. 
@@ -32,10 +35,17 @@ Which one to choose?  It's up to you and what your project already uses. You can
     
 ## Get started
 
-Use a `GroupAdapter` anywhere you would normally use a `RecyclerView.Adapter`, and attach it to your RecyclerView as usual.
+Use a `GroupieAdapter` anywhere you would normally use a `RecyclerView.Adapter`, and attach it to your RecyclerView as usual.
 
+Kotlin
+```kotlin
+val adapter = GroupieAdapter()
+recyclerView.adapter = adapter
+```
+
+Java
 ```java
-GroupAdapter adapter = new GroupAdapter();
+GroupieAdapter adapter = new GroupieAdapter();
 recyclerView.setAdapter(adapter);
 ```
     
@@ -43,6 +53,18 @@ recyclerView.setAdapter(adapter);
 
 Groups are the building block of Groupie.  An individual `Item` (the unit which an adapter inflates and recycles) is a Group of 1.  You can add Groups and Items interchangeably to the adapter.
 
+Kotlin
+```kotlin
+groupAdapter += HeaderItem()
+groupAdapter += CommentItem()
+
+val section = Section()
+section.setHeader(HeaderItem())
+section.addAll(bodyItems)
+groupAdapter += section
+```
+
+Java
 ```java
 groupAdapter.add(new HeaderItem());
 groupAdapter.add(new CommentItem());
@@ -53,9 +75,9 @@ section.addAll(bodyItems);
 groupAdapter.add(section);
 ```
     
-Modifying the contents of the GroupAdapter in any way automatically sends change notifications.  Adding an item calls `notifyItemAdded()`; adding a group calls `notifyItemRangeAdded()`, etc.
+Modifying the contents of the GroupieAdapter in any way automatically sends change notifications.  Adding an item calls `notifyItemAdded()`; adding a group calls `notifyItemRangeAdded()`, etc.
 
-Modifying the contents of a Group automatically notifies its parent.  When notifications reach the GroupAdapter, it dispatches final change notifications.  There's never a need to manually notify or keep track of indices, no matter how you structure your data.
+Modifying the contents of a Group automatically notifies its parent.  When notifications reach the GroupieAdapter, it dispatches final change notifications.  There's never a need to manually notify or keep track of indices, no matter how you structure your data.
 
 ```java
 section.removeHeader(); // results in a remove event for 1 item in the adapter, at position 2
@@ -69,31 +91,11 @@ Groupie tries not to assume what features your groups require.  Instead, groups 
     
 Life (and mobile design) is complicated, so groups are designed so that making new ones and defining their behavior is easy. You should make many small, simple, custom groups as the need strikes you.
 
-You can implement the `Group` interface directly if you want.  However, in most cases, you should extend `Section` or the base implementation, `NestedGroup`.  Section supports common RV paradigms like diffing, headers, footers, and placeholders.  NestedGroup provides support for arbitrary nesting of groups, registering/unregistering listeners, and fine-grained change notifications to support animations and updating the adapter.
+You can implement the `Group` interface directly if you want.  However, in most cases, you can extend `Section` or the base implementation, `NestedGroup`.  Section supports common RV paradigms like diffing, headers, footers, and placeholders.  NestedGroup provides support for arbitrary nesting of groups, registering/unregistering listeners, and fine-grained change notifications to support animations and updating the adapter.
     
 ## Items
 
-Groupie abstracts away the complexity of multiple item view types.  Each Item declares a view layout id, and gets a callback to `bind` the inflated layout.  That's all you need; you can add your new item directly to a `GroupAdapter` and call it a day.
-
-### Item with Kotlin:
-
-The `Item` class gives you simple callbacks to bind your model object to the generated fields.  Because of Kotlin Android extensions, there's no need to write a view holder.
-
-```kotlin
-import com.xwray.groupie.kotlinandroidextensions.Item
-import com.xwray.groupie.kotlinandroidextensions.ViewHolder
-import kotlinx.android.synthetic.main.song.*
-
-class SongItem constructor(private val song: Song) : Item() {
-
-    override fun getLayout() = R.layout.song
-
-    override fun bind(viewHolder: ViewHolder, position: Int) {
-        viewHolder.title.text = song.title
-        viewHolder.title.artist = song.artist
-    }
-}
-```
+Groupie abstracts away the complexity of multiple item view types.  Each Item declares a view layout id, and gets a callback to `bind` the inflated layout.  That's all you need; you can add your new item directly to a `GroupieAdapter` and call it a day.
 
 ### Item with data binding:
 
@@ -126,7 +128,7 @@ If you're converting existing ViewHolders, you can reference any named views (e.
 You can also mix and match `BindableItem` and other `Items` in the adapter, so you can leave legacy viewholders as they are by making an `Item<MyExistingViewHolder>`.  
 
 ### Legacy item (your own ViewHolder)
-You can leave legacy viewholders as they are by converting `MyExistingViewHolder` to extend Groupie's `ViewHolder` rather than `RecyclerView.ViewHolder`. Make sure to change the imports to `com.xwray.groupie.Item` and `com.xwray.groupie.ViewHolder`. 
+You can leave legacy viewholders as they are by converting `MyExistingViewHolder` to extend `GroupieViewHolder` rather than `RecyclerView.ViewHolder`. Make sure to change the imports to `com.xwray.groupie.Item` and `com.xwray.groupie.GroupieViewHolder`.
 
 Finally, in your `Item<MyExistingViewHolder>`, override 
 
@@ -145,41 +147,82 @@ Items can also declare their own column span and whether they are draggable or s
 
 ## Kotlin
 
-In your app build.gradle file, include:
+In your project level `build.gradle` file, include:
 
-```gradle
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
-
+```
 buildscript {
-    ext.kotlin_version = '1.2.10'
+    ext.kotlin_version = '1.6.21'
+
     repositories {
-        jcenter()
+        mavenCentral()
     }
+
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.kotlin:kotlin-android-extensions:$kotlin_version"
     }
 }
 
-// IMPORTANT!  Enables view caching in viewholders.
-// See: https://github.com/Kotlin/KEEP/blob/master/proposals/android-extensions-entity-caching.md
-androidExtensions {
-    experimental = true
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+    }
+}
+```
+
+In new projects, the `settings.gradle` file has a `dependencyResolutionManagement` block, which needs to specify the repository as well:
+
+```
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }  // <--
+        jcenter() // Warning: this repository is going to shut down soon
+    }
+}
+```
+
+In your app `build.gradle` file, include:
+
+```
+implementation 'com.github.lisawray.groupie:groupie:$groupie_version'
+```
+
+## View binding
+
+Add to your app module's `build.gradle`:
+
+```gradle
+android {
+    buildFeatures {
+        viewBinding true
+    }
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    implementation 'com.xwray:groupie:2.0.3'
-    implementation 'com.xwray:groupie-kotlin-android-extensions:2.0.3'
+    implementation "com.github.lisawray.groupie:groupie:$groupie_version"
+    implementation "com.github.lisawray.groupie:groupie-viewbinding:$groupie_version"
 }
 ```
 
-Remember to include 
+Then:
+
 ```kotlin
-import kotlinx.android.synthetic.main.my_item_layout.*
+class MyLayoutItem: BindableItem<MyLayoutBinding>() {
+    override fun initializeViewBinding(view: View): MyLayoutBinding {
+        return MyLayoutBinding.bind(view)
+    }
+
+    // Other implementations...
+}
 ```
-in the corresponding Item class for generated view references.
+
+### Note:
+
+If you use `groupie-databinding` with data binding classes and your layouts have some variables or [observable objects](https://developer.android.com/topic/libraries/data-binding/observability), don't forget to run [`executePendingBindings`](https://developer.android.com/topic/libraries/data-binding/generated-binding#immediate_binding) at the last point in `bind`.
 
 ## Data binding
 
@@ -187,13 +230,14 @@ Add to your app module's build.gradle:
 
 ```gradle
 android {
-    dataBinding {
-        enabled = true
+    buildFeatures {
+        dataBinding true
     }
 }
 
 dependencies {
-    compile 'com.xwray:groupie-databinding:2.0.3'
+    implementation "com.github.lisawray.groupie:groupie:$groupie_version"
+    implementation "com.github.lisawray.groupie:groupie-databinding:$groupie_version"
 }
 ```
 
@@ -225,11 +269,11 @@ Then, just wrap each item layout in `<layout>` tags.  (The `<data>` section is o
 
 Bindings are only generated for layouts wrapped with <layout/> tags, so there's no need to convert the rest of your project (unless you want to).
 
-You can add a `<data>` section to directly bind a model or ViewModel, but you don't have to.  The generated view bindings alone are a huge time saver.  
+You can add a `<data>` section to directly bind a model or ViewModel, but you don't have to.  The generated view bindings alone are a huge time saver.
 
-### Kotlin AND data binding?
-Sure, why not?  Follow all the instructions from *both* sections above.  You only need to include the `groupie-databinding` dependency, and omit the references to `android-extensions`.  You'll make `BindableItem`s instead of importing and using Kotlin extensions.
-
+### Kotlin AND data binding / view binding?
+Sure, why not?  Follow all the instructions from *both* sections above.
+You only need to include the `groupie-databinding` or `groupie-viewbinding` dependency.
 
 # Contributing
 Contributions you say?  Yes please!

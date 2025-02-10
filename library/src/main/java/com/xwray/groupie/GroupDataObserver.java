@@ -1,6 +1,6 @@
 package com.xwray.groupie;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 public interface GroupDataObserver {
     void onChanged(@NonNull Group group);
@@ -22,4 +22,6 @@ public interface GroupDataObserver {
     void onItemRangeRemoved(@NonNull Group group, int positionStart, int itemCount);
 
     void onItemMoved(@NonNull Group group, int fromPosition, int toPosition);
+
+    void onDataSetInvalidated();
 }
